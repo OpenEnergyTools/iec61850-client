@@ -63,7 +63,7 @@ const lib = Deno.dlopen("./libiec61850.so", {
     result: "f64",
   },
   MmsValue_getOctetStringOctet: {
-    parameters: ["pointer","u16"],
+    parameters: ["pointer", "u16"],
     result: "u16",
   },
   MmsValue_getOctetStringSize: {
@@ -77,16 +77,16 @@ const lib = Deno.dlopen("./libiec61850.so", {
   MmsValue_getUtcTimeInMs: {
     parameters: ["pointer"],
     result: "i64",
-  }
+  },
 });
 
 function getBitString(mmsValue: Deno.PointerValue): string {
   const size = lib.symbols.MmsValue_getBitStringSize(mmsValue);
 
   let bitString = "";
-  for (let i = 0; i < size; i++ ) {
-    const bit =  lib.symbols.MmsValue_getBitStringBit(mmsValue, i);
-    bitString = bitString + bit;	
+  for (let i = 0; i < size; i++) {
+    const bit = lib.symbols.MmsValue_getBitStringBit(mmsValue, i);
+    bitString = bitString + bit;
   }
 
   return bitString;
@@ -94,24 +94,24 @@ function getBitString(mmsValue: Deno.PointerValue): string {
 
 function getOctetString(mmsValue: Deno.PointerValue): string {
   const size = lib.symbols.MmsValue_getOctetStringSize(mmsValue);
-  
+
   let octString = "";
-  for (let i = 0;i < size;i++) {
-     const dec = lib.symbols.MmsValue_getOctetStringOctet(mmsValue,i);
-     octString = octString + dec.toString(16).padStart(2,0).toUpperCase();
+  for (let i = 0; i < size; i++) {
+    const dec = lib.symbols.MmsValue_getOctetStringOctet(mmsValue, i);
+    octString = octString + dec.toString(16).padStart(2, 0).toUpperCase();
   }
-	
+
   return "0x" + octString;
 }
 
 function getCString(mmsValue: Deno.PointerValue): string {
-    const ptr = lib.symbols.MmsValue_toString(mmsValue);
-    return new Deno.UnsafePointerView(ptr).getCString();
+  const ptr = lib.symbols.MmsValue_toString(mmsValue);
+  return new Deno.UnsafePointerView(ptr).getCString();
 }
 
 function getUctTime(mmsValue: Deno.PointerValue): string {
-    const ms = lib.symbols.MmsValue_getUtcTimeInMs(mmsValue);
-    return new Date(ms).toISOString();
+  const ms = lib.symbols.MmsValue_getUtcTimeInMs(mmsValue);
+  return new Date(ms).toISOString();
 }
 
 export function getMmsValue(
@@ -124,16 +124,13 @@ export function getMmsValue(
   // MMS_DATA_ACCESS_ERROR
   if (mmsType === 15) return;
   // MMS_DATA_BOOLEAN && SCL bType BOOLEAN
-  if (mmsType === 2)
-    return lib.symbols.MmsValue_getBoolean(mmsValue) === 1;
+  if (mmsType === 2) return lib.symbols.MmsValue_getBoolean(mmsValue) === 1;
   // MMS_DATA_BITSTRING && SCL bType BOOLEAN
-  if (mmsType === 3)
-    return getBitString(mmsValue);
-  // MMS_DATA_INTEGER && SCL bType "INTxx"
-  if (mmsType === 4 && bType.startsWith("INT"))
-    return lib.symbols.MmsValue_toInt64(mmsValue);
-  if (mmsType === 5 && bType.startsWith("INT"))
-    return lib.symbols.MmsValue_toUint32(mmsValue);
+  if (mmsType === 3) return getBitString(mmsValue);
+  // MMS_DATA_INTEGER
+  if (mmsType === 4) return lib.symbols.MmsValue_toInt64(mmsValue);
+  // MMS_DATA_UNSIGNED
+  if (mmsType === 5) return lib.symbols.MmsValue_toUint32(mmsValue);
   // MMS_DATA_FLOAT && SCL bType FLOAT32
   if (mmsType === 6 && bType === "FLOAT32")
     return lib.symbols.MmsValue_toFloat(mmsValue);
@@ -141,15 +138,11 @@ export function getMmsValue(
   if (mmsType === 6 && bType === "FLOAT64")
     return lib.symbols.MmsValue_toDouble(mmsValue);
   // MMS_OCTET_STRING
-  if (mmsType === 7)
-    return getOctetString(mmsValue);
+  if (mmsType === 7) return getOctetString(mmsValue);
   // MMS_STRING || MMS_OCTET_STRING
-  if (mmsType === 8 || mmsType === 13)
-    return getCString(mmsValue);
+  if (mmsType === 8 || mmsType === 13) return getCString(mmsValue);
   // MMS_UCT_TIME
-  if (mmsType === 14)
-    return getUctTime(mmsValue);
-  
+  if (mmsType === 14) return getUctTime(mmsValue);
+
   return;
 }
-
